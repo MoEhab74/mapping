@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class HomeView extends StatefulWidget {
-  const HomeView({super.key});
+class GoogleMapsView extends StatefulWidget {
+  const GoogleMapsView({super.key});
 
   @override
-  State<HomeView> createState() => _HomeViewState();
+  State<GoogleMapsView> createState() => _GoogleMapsViewState();
 }
 
-class _HomeViewState extends State<HomeView> {
+class _GoogleMapsViewState extends State<GoogleMapsView> {
   // 1- Google Map Controller to control the map and perform actions on it
   // We can use it to move the map, zoom in/out, etc. from code
 
