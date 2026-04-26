@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
@@ -30,6 +31,9 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
   LatLng? _destinationLocation;
   // List of LatLng objects that represent the route
   List<LatLng> _routeCoordinates = [];
+  
+  // API Key for OpenRouteService
+  final String _apiKey = dotenv.env['API_KEY']!;
 
   // Initialize location by  asking for permission, listening for location updates, and updating the current location accordingly.
   Future<void> _initializeLocation() async {
@@ -89,8 +93,6 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
     }
   }
 
-  
-
   // Fetch coordinates for a given location using the OpenStreetMap service ===> Nominatim API
   Future<void> _fetchCoordinates(String location) async {
     // Construct the URL to query the OpenStreetMap API
@@ -123,11 +125,7 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
       showSnackBarMessage(context, 'Failed to fetch coordinates for the location');
     }
   }
-
-  // API Key ===> eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImQyYTEyNWIzNDc3MDQyMWFhNWQ5OWMzMGZmNjRhYzZjIiwiaCI6Im11cm11cjY0In0=
-  final String _apiKey =
-      'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImQyYTEyNWIzNDc3MDQyMWFhNWQ5OWMzMGZmNjRhYzZjIiwiaCI6Im11cm11cjY0In0=';
-      
+ 
   // Using OpenRouteService API to fetch the route between the current location and the destination location
   // Directions Endpoint
   Future<void> _displayRoute() async {
