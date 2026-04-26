@@ -4,6 +4,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
+import 'package:mapping/functions/show_snack_bar_message.dart';
+import 'package:mapping/widgets/search_field_and_icon_button.dart';
 
 class OpenStreetMapView extends StatefulWidget {
   const OpenStreetMapView({super.key});
@@ -16,13 +18,17 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
   // MapController is used to control the map (move to a specific location, zoom in/out, etc.)
   final MapController _mapController = MapController();
 
-  final Location _location = Location(); // To Access the device's location
+  final Location _location =
+      Location(); // To Access the device's location
   final TextEditingController _searchController =
       TextEditingController(); // For the search bar
   bool isLoading = true;
   // latlong2 package is used to convert the latitude and longitude to a LatLng object (which is used by the flutter_map package)
   LatLng? _currentLocation;
+
+  // To store the destination location (the location that the user searched for)
   LatLng? _destinationLocation;
+  // List of LatLng objects that represent the route
   List<LatLng> _routeCoordinates = [];
 
   // Initialize location by  asking for permission, listening for location updates, and updating the current location accordingly.
@@ -75,19 +81,15 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
   Future<void> _userCurrentLocation() async {
     // Get user's current location using Geolocator or Location package
     // Then move the map to the user's location
-    // Example using Location package:
-    // Location location = Location();
-    // LocationData locationData = await location.getLocation();
-    // _mapController.move(LatLng(locationData.latitude!, locationData.longitude!), 15);
     if (_currentLocation != null) {
       _mapController.move(_currentLocation!, 15);
     } else {
       // Handle the case when location is not available
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to get current location')),
-      );
+      showSnackBarMessage(context, 'Unable to get current location');
     }
   }
+
+  
 
   // Fetch coordinates for a given location using the OpenStreetMap service ===> Nominatim API
   Future<void> _fetchCoordinates(String location) async {
@@ -98,9 +100,7 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
     final response = await Dio().get(
       url,
       options: Options(
-        headers: {
-          'User-Agent': 'com.abdallahyassin.mapping/1.0',
-        },
+        headers: {'User-Agent': 'com.abdallahyassin.mapping/1.0'},
       ),
     );
     if (response.statusCode == 200) {
@@ -120,24 +120,19 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
       }
     } else {
       // Handle the error case
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to fetch coordinates')),
-      );
+      showSnackBarMessage(context, 'Failed to fetch coordinates for the location');
     }
   }
 
   // API Key ===> eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImQyYTEyNWIzNDc3MDQyMWFhNWQ5OWMzMGZmNjRhYzZjIiwiaCI6Im11cm11cjY0In0=
   final String _apiKey =
       'eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImQyYTEyNWIzNDc3MDQyMWFhNWQ5OWMzMGZmNjRhYzZjIiwiaCI6Im11cm11cjY0In0=';
+      
   // Using OpenRouteService API to fetch the route between the current location and the destination location
   // Directions Endpoint
   Future<void> _displayRoute() async {
     if (_currentLocation == null || _destinationLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Current location or destination is not available'),
-        ),
-      );
+      showSnackBarMessage(context, 'Current location or destination location is not available');
       return;
     }
     final response = await Dio().get(
@@ -155,9 +150,7 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
       });
       // Draw route
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to fetch route')));
+      showSnackBarMessage(context, 'Failed to fetch route');
     }
   }
 
@@ -166,130 +159,117 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
     super.initState();
     _initializeLocation();
   }
+  @override
+  void dispose() {    
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('OpenStreetMap'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('OpenStreetMap'),
+        centerTitle: true,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
       body: Stack(
         children: [
           isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: _currentLocation ?? LatLng(0, 0),
-                    initialZoom: 2,
-                    minZoom: 0,
-                    maxZoom: 100,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      // subdomains: const ['a', 'b', 'c'],
-                      // OpenStreetMap specifically blocks 'com.example.*' package names!
-                      // We must use a unique identifier.
-                      userAgentPackageName: 'com.abdallahyassin.mapping',
+              ? const Center(
+                  child: CircularProgressIndicator(color: Colors.blue),
+                )
+              : SizedBox(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height,
+
+                child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: _currentLocation ?? LatLng(0, 0),
+                      initialZoom: 2,
+                      minZoom: 0,
+                      maxZoom: 100,
                     ),
-                    // CurrentLocationLayer = Geolocator + Marker + Live tracking
-                    // We use it istead of Geolocator + Marker because it provides a lot of features out of the box like:
-                    // - Customizable marker (size, color, icon, etc.)
-                    // - Live tracking (the marker will move as the user moves)
-                    // nder the hood, this package automatically uses the geolocator plugin.
-                    //geolocator makes a very strict check for Google Play Services (the FusedLocationProviderClient) by default.
-                    CurrentLocationLayer(
-                      alignPositionOnUpdate: AlignOnUpdate.once,
-                      alignDirectionOnUpdate: AlignOnUpdate.never,
-                      style: const LocationMarkerStyle(
-                        marker: DefaultLocationMarker(
-                          child: Icon(
-                            Icons.navigation,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                        ),
-                        markerSize: Size(35, 35),
-                        markerDirection: MarkerDirection.heading,
+                    children: [
+                      TileLayer(
+                        // This template is to fetch the Open Street Map tiles from the OpenStreetMap server.
+                        // Exists in the flutter_map_location_marker package
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        // subdomains: const ['a', 'b', 'c'],
+                        // OpenStreetMap specifically blocks 'com.example.*' package names!
+                        // We must use a unique identifier.
+                        // We should use our app's package name
+                        userAgentPackageName: 'com.abdallahyassin.mapping',
                       ),
-                    ),
-                    if (_destinationLocation != null)
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: _destinationLocation!,
-                            width: 50,
-                            height: 50,
-                            child: const Icon(
-                              Icons.location_on,
-                              color: Colors.red,
-                              size: 40,
+                      // CurrentLocationLayer = Geolocator + Marker + Live tracking
+                      // We use it istead of Geolocator + Marker because it provides a lot of features out of the box like:
+                      // - Customizable marker (size, color, icon, etc.)
+                      // - Live tracking (the marker will move as the user moves)
+                      // Under the hood, this package automatically uses the geolocator plugin.
+                      //geolocator makes a very strict check for Google Play Services (the FusedLocationProviderClient) by default.
+                      CurrentLocationLayer(
+                        alignPositionOnUpdate: AlignOnUpdate.once,
+                        alignDirectionOnUpdate: AlignOnUpdate.never,
+                        style: const LocationMarkerStyle(
+                          marker: DefaultLocationMarker(
+                            child: Icon(
+                              Icons.navigation,
+                              color: Colors.white,
+                              size: 18,
                             ),
                           ),
-                        ],
+                          markerSize: Size(35, 35),
+                          markerDirection: MarkerDirection.heading,
+                        ),
                       ),
-                    // Draw the route as a PolylineLayer
-                    if (_routeCoordinates.isNotEmpty &&
-                        _currentLocation != null &&
-                        _destinationLocation != null)
-                      PolylineLayer(
-                        polylines: [
-                          Polyline(
-                            points: _routeCoordinates,
-                            strokeWidth: 4,
-                            color: Colors.blue,
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
+                      if (_destinationLocation != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: _destinationLocation!,
+                              width: 50,
+                              height: 50,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ],
+                        ),
+                      // Draw the route as a PolylineLayer
+                      if (_routeCoordinates.isNotEmpty &&
+                          _currentLocation != null &&
+                          _destinationLocation != null)
+                        PolylineLayer(
+                          polylines: [
+                            Polyline(
+                              points: _routeCoordinates,
+                              strokeWidth: 4,
+                              color: Colors.blue,
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+              ),
           // TextField for searching for a location
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search for a location',
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.search),
-                          onPressed: () {
-                            // Fetch coordinates for the entered location
-                            if (_searchController.text.isEmpty) {
-                              return;
-                            }
-                            _fetchCoordinates(_searchController.text);
-                          },
-                        ),
-                        border: const OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Colors.white.withAlpha(204),
-                      ),
-                    ),
-                  ),
-                ),
-                // Search button
-                // IconButton(
-                //   icon: const Icon(Icons.directions),
-                //   onPressed: () {
-                //     // Display the route from the current location to the destination location
-                //     // Check first if the text field is not empty and the destination location is not null
-                //     if (_searchController.text.isEmpty || _destinationLocation == null) {
-                //       ScaffoldMessenger.of(context).showSnackBar(
-                //         const SnackBar(content: Text('Please enter a destination and select a location.')),
-                //       );
-                //       return;
-                //     }
-                //     _displayRoute();
-                //   },
-                // ),
-              ],
+            child: SearchFieldAndIconButton(
+              searchController: _searchController,
+              onPressed: () {
+                // Fetch coordinates for the entered location
+                if (_searchController.text.isEmpty) {
+                  return;
+                }
+                _fetchCoordinates(_searchController.text);
+              },
             ),
           ),
         ],
@@ -305,3 +285,4 @@ class _OpenStreetMapViewState extends State<OpenStreetMapView> {
     );
   }
 }
+
